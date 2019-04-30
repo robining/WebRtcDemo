@@ -15,6 +15,7 @@ import org.webrtc.DataChannel;
 import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
+import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
@@ -101,22 +102,30 @@ public class MainActivity extends AppCompatActivity {
             remoteVideoTrack.setEnabled(true);
 
             List<PeerConnection.IceServer> servers = new ArrayList<>();
-//            PeerConnection.IceServer iceServer = PeerConnection.IceServer.builder(new ArrayList<>()).createIceServer();
-//            servers.add(iceServer);
+            List<String> urls = new ArrayList<>();
+            urls.add("stun:stun.l.google.com:19302");
+            urls.add("stun:stun.ekiga.net");
+            PeerConnection.IceServer iceServer = PeerConnection.IceServer.builder(urls).createIceServer();
+            servers.add(iceServer);
             PeerConnection.RTCConfiguration rtcConfiguration = new PeerConnection.RTCConfiguration(servers);
             PeerConnection peerConnection = peerConnectionFactory.createPeerConnection(rtcConfiguration, new SimplePeerConnectionObserver());
             if (peerConnection == null) {
                 Toast.makeText(this, "远程连接失败", Toast.LENGTH_SHORT).show();
                 return;
             }
+
+            MediaConstraints mediaConstraints = new MediaConstraints();
+            mediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+            mediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
             peerConnection.createOffer(new SimpleSdpObserver() {
                 @Override
                 public void onCreateSuccess(SessionDescription sessionDescription) {
                     super.onCreateSuccess(sessionDescription);
-                    peerConnection.setLocalDescription(this, sessionDescription);
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, sessionDescription.description, Toast.LENGTH_SHORT).show());
+//                    peerConnection.setLocalDescription(this, sessionDescription);
                     //TODO 上传到服务器
                 }
-            }, null);
+            }, mediaConstraints);
             peerConnection.addTrack(remoteVideoTrack);
         });
     }
